@@ -23,6 +23,7 @@
 */
 namespace TheGnouCommunity.Tools.Synchronization
 {
+    using System;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
@@ -95,6 +96,53 @@ namespace TheGnouCommunity.Tools.Synchronization
         {
             return this.RelativePath.GetHashCode();
             ;
+        }
+
+        public static bool Equals(FileInfoWrapper source, FileInfoWrapper target, ComparisonOptions comparisonOptions)
+        {
+            if (!comparisonOptions.CheckFileLength)
+            {
+                return true;
+            }
+
+            if (source.Info.Length == target.Info.Length ||
+                source.Info.Length == target.Info.Length + 38)
+            {
+                return EqualsContent(source, target, comparisonOptions);
+            }
+
+            if (target.Info.Length == source.Info.Length + 38)
+            {
+                return EqualsContent(target, source, comparisonOptions);
+            }
+
+            return false;
+        }
+
+        private static bool EqualsContent(FileInfoWrapper first, FileInfoWrapper second, ComparisonOptions comparisonOptions)
+        {
+            if (comparisonOptions.CheckFilePartialContent || comparisonOptions.CheckFileFullContent)
+            {
+                long length = first.Info.Length;
+                if (comparisonOptions.CheckFilePartialContent)
+                {
+                    length = Math.Min(length, comparisonOptions.CheckFilePartialContentMaxLength);
+                }
+
+                using (System.IO.FileStream fs1 = first.Info.OpenRead())
+                using (System.IO.FileStream fs2 = second.Info.OpenRead())
+                {
+                    long i = 0;
+                    while (i != length && fs1.ReadByte() == fs2.ReadByte())
+                    {
+                        i++;
+                    }
+
+                    return i == length;
+                }
+            }
+
+            return true;
         }
     }
 }

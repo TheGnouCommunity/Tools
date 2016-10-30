@@ -31,7 +31,7 @@ namespace TheGnouCommunity.Tools.Synchronization
         public static void Main(string[] args)
         {
             Synchronizer s = new Synchronizer(args[0], args[1]);
-            s.Run();
+            s.Run(ComparisonOptions.None());
 
             Console.WriteLine("Press Enter key to close...");
             Console.ReadLine();
