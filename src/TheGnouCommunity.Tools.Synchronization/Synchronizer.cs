@@ -46,6 +46,7 @@ namespace TheGnouCommunity.Tools.Synchronization
         private HashSet<FileInfoWrapper> missingFiles;
         private HashSet<FileInfoWrapper> extraFiles;
         private List<Tuple<FileInfoWrapper, FileInfoWrapper>> similarFiles;
+        private HashSet<FileInfoWrapper> conflictedFiles;
 
         private Stopwatch sw = new Stopwatch();
         private TimeSpan? comparisonDuration;
@@ -115,89 +116,119 @@ namespace TheGnouCommunity.Tools.Synchronization
             }
         }
 
+        public IEnumerable<string> ConflictedFiles
+        {
+            get
+            {
+                return this.conflictedFiles.Select(t => t.RelativePath);
+            }
+        }
+
+        public void Run() => this.Run(ComparisonOptions.None());
+
         public void Run(ComparisonOptions options)
         {
             lock (this.comparisonSyncLock)
             {
-                Console.Write("Comparing files");
-
                 this.comparisonDuration = null;
                 this.sw.Restart();
 
-                this.relativeSourceFiles = new Dictionary<string, FileInfoWrapper>();
-                this.relativeTargetFiles = targetFiles.ToDictionary(t => t.RelativePath, t => t);
-
-                this.identicalFiles = new HashSet<FileInfoWrapper>();
-                this.differentFiles = new HashSet<FileInfoWrapper>();
-                this.missingFiles = new HashSet<FileInfoWrapper>();
-                this.extraFiles = new HashSet<FileInfoWrapper>(this.relativeTargetFiles.Values);
-
-                int n = 0;
-                foreach (FileInfoWrapper sourceFile in this.sourceFiles)
-                {
-                    this.relativeSourceFiles.Add(sourceFile.RelativePath, sourceFile);
-
-                    FileInfoWrapper targetFile;
-                    if (this.relativeTargetFiles.TryGetValue(sourceFile.RelativePath, out targetFile))
-                    {
-                        if (FileInfoWrapper.Equals(sourceFile, targetFile, options))
-                        {
-                            this.identicalFiles.Add(sourceFile);
-                        }
-                        else
-                        {
-                            this.differentFiles.Add(sourceFile);
-                        }
-
-                        this.extraFiles.Remove(sourceFile);
-                    }
-                    else
-                    {
-                        this.missingFiles.Add(sourceFile);
-                    }
-
-                    n = this.identicalFiles.Count + this.differentFiles.Count + this.missingFiles.Count;
-                    if (n % 1000 == 0)
-                    {
-                        Console.Write(".");
-                    }
-                }
-
-                Console.WriteLine();
-
-                Console.Write("Searching for similar files");
-
-                this.similarFiles = new List<Tuple<FileInfoWrapper, FileInfoWrapper>>();
-
-                n = 1;
-                foreach (FileInfoWrapper missingFile in this.missingFiles)
-                {
-                    foreach (FileInfoWrapper extraFile in this.extraFiles)
-                    {
-                        if (missingFile.Info.Name == extraFile.Info.Name)
-                        {
-                            if (FileInfoWrapper.Equals(missingFile, extraFile, options))
-                            {
-                                this.similarFiles.Add(Tuple.Create(missingFile, extraFile));
-                            }
-                        }
-                    }
-
-                    if (n++ % 10 == 0)
-                    {
-                        Console.Write(".");
-                    }
-                }
-
-                Console.WriteLine();
+                this.Compare(options);
+                this.SearchForSimilarFiles(options);
+                this.DetectConflicts();
 
                 this.sw.Stop();
                 this.comparisonDuration = this.sw.Elapsed;
 
-                Console.WriteLine($"Comparison run in {sw.ElapsedMilliseconds} ms.");
+                Console.WriteLine($"Process ran in {sw.ElapsedMilliseconds} ms.");
+                Console.WriteLine();
 
                 this.WriteSummary();
             }
+        }
+
+        private void Compare(ComparisonOptions options)
+        {
+            Console.Write("Comparing files");
+
+            this.relativeSourceFiles = new Dictionary<string, FileInfoWrapper>();
+            this.relativeTargetFiles = targetFiles.ToDictionary(t => t.RelativePath, t => t);
+
+            this.identicalFiles = new HashSet<FileInfoWrapper>();
+            this.differentFiles = new HashSet<FileInfoWrapper>();
+            this.missingFiles = new HashSet<FileInfoWrapper>();
+            this.extraFiles = new HashSet<FileInfoWrapper>(this.relativeTargetFiles.Values);
+
+            int n;
+            foreach (FileInfoWrapper sourceFile in this.sourceFiles)
+            {
+                this.relativeSourceFiles.Add(sourceFile.RelativePath, sourceFile);
+
+                FileInfoWrapper targetFile;
+                if (this.relativeTargetFiles.TryGetValue(sourceFile.RelativePath, out targetFile))
+                {
+                    if (FileInfoWrapper.Equals(sourceFile, targetFile, options))
+                    {
+                        this.identicalFiles.Add(sourceFile);
+                    }
+                    else
+                    {
+                        this.differentFiles.Add(sourceFile);
+                    }
+
+                    this.extraFiles.Remove(sourceFile);
+                }
+                else
+                {
+                    this.missingFiles.Add(sourceFile);
+                }
+
+                n = this.identicalFiles.Count + this.differentFiles.Count + this.missingFiles.Count;
+                if (n % 1000 == 0)
+                {
+                    Console.Write(".");
+                }
+            }
+
+            Console.WriteLine();
+        }
+
+        private void SearchForSimilarFiles(ComparisonOptions options)
+        {
+            Console.Write("Searching for similar files");
+
+            this.similarFiles = new List<Tuple<FileInfoWrapper, FileInfoWrapper>>();
+
+            int n = 1;
+            foreach (FileInfoWrapper missingFile in this.missingFiles)
+            {
+                foreach (FileInfoWrapper extraFile in this.extraFiles)
+                {
+                    if (missingFile.Info.Name == extraFile.Info.Name)
+                    {
+                        if (FileInfoWrapper.Equals(missingFile, extraFile, options))
+                        {
+                            this.similarFiles.Add(Tuple.Create(missingFile, extraFile));
+                        }
+                    }
+                }
+
+                if (n++ % 10 == 0)
+                {
+                    Console.Write(".");
+                }
+            }
+
+            Console.WriteLine();
+        }
+
+        private void DetectConflicts()
+        {
+            Console.Write("Detecting conflicts");
+
+            this.conflictedFiles = new HashSet<FileInfoWrapper>(this.similarFiles.GroupBy(t => t.Item1).Where(t => t.Count() > 1).Select(t => t.Key));
+
+            Console.WriteLine();
         }
 
         private void WriteSummary()
@@ -210,6 +241,7 @@ namespace TheGnouCommunity.Tools.Synchronization
             Console.WriteLine($"\t- {this.missingFiles.Count} missing files.");
             Console.WriteLine($"\t- {this.extraFiles.Count} extra files.");
             Console.WriteLine($"\t- {this.similarFiles.Count} similar files.");
+            Console.WriteLine($"\t- {this.conflictedFiles.Count} conflicted files.");
             Console.WriteLine();
         }
     }
