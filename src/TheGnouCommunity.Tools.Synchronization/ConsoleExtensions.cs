@@ -24,17 +24,18 @@
 namespace TheGnouCommunity.Tools.Synchronization
 {
     using System;
+    using System.Collections.Generic;
 
-    public class Program
+    internal static class ConsoleExtensions
     {
-
-        public static void Main(string[] args)
+        public static void WriteToConsole<T>(this IEnumerable<T> source)
         {
-            Synchronizer s = new Synchronizer(args[0], args[1]);
-            s.Run();
+            foreach (T item in source)
+            {
+                Console.WriteLine($"\t{item}");
+            }
 
-            Console.WriteLine("Press Enter key to close...");
-            Console.ReadLine();
+            Console.WriteLine();
         }
     }
 }
