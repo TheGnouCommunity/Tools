@@ -134,8 +134,9 @@ namespace TheGnouCommunity.Tools.Synchronization
                 this.sw.Restart();
 
                 this.Compare(options);
-                this.SearchForSimilarFiles(options);
+                this.SearchForSimilarFiles(ComparisonOptions.FileLength());
                 this.DetectConflicts();
+                this.ResolveConflicts();
 
                 this.sw.Stop();
                 this.comparisonDuration = this.sw.Elapsed;
@@ -227,6 +228,35 @@ namespace TheGnouCommunity.Tools.Synchronization
             Console.Write("Detecting conflicts");
 
             this.conflictedFiles = new HashSet<FileInfoWrapper>(this.similarFiles.GroupBy(t => t.Item1).Where(t => t.Count() > 1).Select(t => t.Key));
+
+            Console.WriteLine();
+        }
+
+        private void ResolveConflicts()
+        {
+            Console.Write("Resolving conflicts");
+
+            int i = 0;
+            while (i != this.similarFiles.Count)
+            {
+                var similarFile = this.similarFiles[i];
+                if (!this.conflictedFiles.Contains(similarFile.Item1))
+                {
+                    this.extraFiles.Remove(similarFile.Item2);
+                    i++;
+                }
+                else
+                {
+                    this.similarFiles.RemoveAt(i);
+                }
+
+                this.missingFiles.Remove(similarFile.Item1);
+
+                if (i % 10 == 0)
+                {
+                    Console.Write(".");
+                }
+            }
 
             Console.WriteLine();
         }
