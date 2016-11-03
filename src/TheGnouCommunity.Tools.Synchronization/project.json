@@ -1,9 +1,11 @@
 {
   "version": "1.0.0-*",
   "buildOptions": {
-    "emitEntryPoint": true
+    "emitEntryPoint": true,
+    "copyToOutput": {
+      "includeFiles": [ "appsettings.json" ]
+    }
   },
-
   "frameworks": {
     "net462": {
       "buildOptions": {
@@ -27,8 +29,11 @@
       }
     }
   },
-
   "runtimes": {
     "win10-x64": {}
+  },
+  "dependencies": {
+    "Microsoft.Extensions.Configuration": "1.0.0",
+    "Microsoft.Extensions.Configuration.Json": "1.0.0"
   }
 }

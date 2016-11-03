@@ -37,6 +37,7 @@ namespace TheGnouCommunity.Tools.Synchronization
     {
         private readonly object comparisonSyncLock = new object();
 
+        private readonly string jobName;
         private readonly string sourcePath;
         private readonly string targetPath;
 
@@ -56,8 +57,9 @@ namespace TheGnouCommunity.Tools.Synchronization
         private Stopwatch sw = new Stopwatch();
         private TimeSpan? comparisonDuration;
 
-        public Synchronizer(string sourcePath, string targetPath)
+        public Synchronizer(string jobName, string sourcePath, string targetPath)
         {
+            this.jobName = jobName;
             this.sourcePath = sourcePath;
             this.targetPath = targetPath;
 
@@ -135,6 +137,8 @@ namespace TheGnouCommunity.Tools.Synchronization
         {
             lock (this.comparisonSyncLock)
             {
+                Console.WriteLine($"Starting job {jobName}...");
+
                 this.comparisonDuration = null;
                 this.sw.Restart();
 
@@ -146,7 +150,7 @@ namespace TheGnouCommunity.Tools.Synchronization
                 this.sw.Stop();
                 this.comparisonDuration = this.sw.Elapsed;
 
-                Console.WriteLine($"Process ran in {sw.ElapsedMilliseconds} ms.");
+                Console.WriteLine($"Job ran in {sw.ElapsedMilliseconds} ms.");
                 Console.WriteLine();
 
                 this.WriteSummary();

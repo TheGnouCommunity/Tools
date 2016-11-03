@@ -24,14 +24,30 @@
 namespace TheGnouCommunity.Tools.Synchronization
 {
     using System;
+    using Microsoft.Extensions.Configuration;
 
     public class Program
     {
-
         public static void Main(string[] args)
         {
-            Synchronizer s = new Synchronizer(args[0], args[1]);
-            s.Run();
+            IConfigurationBuilder builder = new ConfigurationBuilder()
+                   .AddJsonFile("appsettings.json");
+
+            IConfigurationRoot configuration = builder.Build();
+            IConfigurationSection jobs = configuration.GetSection("jobs");
+            Synchronizer s = null;
+            foreach (IConfigurationSection job in jobs.GetChildren())
+            {
+                try
+                {
+                    s = new Synchronizer(job.Key, job["sourcePath"], job["targetPath"]);
+                    s.Run();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Unhandled exception occurred: {ex.Message}");
+                }
+            }
 
             Console.WriteLine("Press Enter key to close...");
             Console.ReadLine();
