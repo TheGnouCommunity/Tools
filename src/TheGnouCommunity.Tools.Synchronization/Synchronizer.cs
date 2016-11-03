@@ -335,6 +335,7 @@ namespace TheGnouCommunity.Tools.Synchronization
                 {
                     try
                     {
+                        EnsureDirectoryExists(targetFilePath);
                         File.Copy(missingFile.Info.FullName, targetFilePath);
                     }
                     catch (Exception e)
@@ -353,6 +354,7 @@ namespace TheGnouCommunity.Tools.Synchronization
                 {
                     try
                     {
+                        EnsureDirectoryExists(targetFilePath);
                         File.Move(sourceFilePath, targetFilePath);
                     }
                     catch (Exception e)
@@ -360,6 +362,15 @@ namespace TheGnouCommunity.Tools.Synchronization
                         Console.WriteLine(e.Message);
                     }
                 }
+            }
+        }
+
+        private static void EnsureDirectoryExists(string path)
+        {
+            string directoryName = Path.GetDirectoryName(path);
+            if (!Directory.Exists(directoryName))
+            {
+                Directory.CreateDirectory(directoryName);
             }
         }
     }
