@@ -88,7 +88,7 @@ namespace TheGnouCommunity.Tools.Synchronization
 
             FileInfoWrapper other = (FileInfoWrapper)obj;
 
-            if (!object.Equals(this.RelativePath, other.RelativePath))
+            if (!StringComparer.OrdinalIgnoreCase.Equals(this.RelativePath, other.RelativePath))
             {
                 return false;
             }
@@ -98,7 +98,7 @@ namespace TheGnouCommunity.Tools.Synchronization
 
         public override int GetHashCode()
         {
-            return this.RelativePath.GetHashCode();
+            return StringComparer.OrdinalIgnoreCase.GetHashCode(this.RelativePath);
             ;
         }
 

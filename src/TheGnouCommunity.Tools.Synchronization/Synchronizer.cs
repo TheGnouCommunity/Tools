@@ -188,8 +188,8 @@ namespace TheGnouCommunity.Tools.Synchronization
         {
             Console.Write("Comparing files ");
 
-            this.relativeSourceFiles = new Dictionary<string, FileInfoWrapper>();
-            this.relativeTargetFiles = targetFiles.ToDictionary(t => t.RelativePath, t => t);
+            this.relativeSourceFiles = new Dictionary<string, FileInfoWrapper>(StringComparer.OrdinalIgnoreCase);
+            this.relativeTargetFiles = targetFiles.ToDictionary(t => t.RelativePath, t => t, StringComparer.OrdinalIgnoreCase);
 
             this.identicalFiles = new HashSet<FileInfoWrapper>();
             this.differentFiles = new HashSet<FileInfoWrapper>();
