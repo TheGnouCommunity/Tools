@@ -164,17 +164,17 @@ namespace TheGnouCommunity.Tools.Synchronization
                     Console.WriteLine($"{this.extraFiles.Count} extra files will be deleted.");
                     Console.WriteLine($"{this.missingFiles.Count} missing files will be copied.");
                     Console.WriteLine($"{this.similarFiles.Count} similar files will be moved.");
-                    Console.WriteLine("Press Y to proceed, N to cancel");
+                    Console.WriteLine("Press Y to proceed, A to process without confirmation, N to cancel");
                     ;
                     ConsoleKeyInfo c;
-                    while ((c = Console.ReadKey()).Key != ConsoleKey.Y && c.Key != ConsoleKey.N)
+                    while ((c = Console.ReadKey()).Key != ConsoleKey.Y && c.Key != ConsoleKey.A && c.Key != ConsoleKey.N)
                     {
-                        Console.WriteLine("Y/N ?");
+                        Console.WriteLine("Y/A/N ?");
                     }
 
-                    if (c.Key == ConsoleKey.Y)
+                    if (c.Key != ConsoleKey.N)
                     {
-                        this.ProcessFiles();
+                        this.ProcessFiles(c.Key == ConsoleKey.A);
                     }
                 }
             }
@@ -306,12 +306,13 @@ namespace TheGnouCommunity.Tools.Synchronization
             Console.WriteLine($"\t- {this.conflictedFiles.Count} conflicted files.");
             Console.WriteLine();
         }
-        private void ProcessFiles()
+
+        private void ProcessFiles(bool skipConfirmation)
         {
             foreach (FileInfoWrapper extraFile in extraFiles)
             {
                 Console.WriteLine($"Deleting {extraFile.Info.FullName}");
-                if (Console.ReadKey().Key == ConsoleKey.Y)
+                if (skipConfirmation || Console.ReadKey().Key == ConsoleKey.Y)
                 {
                     try
                     {
@@ -328,7 +329,7 @@ namespace TheGnouCommunity.Tools.Synchronization
             {
                 string targetFilePath = Path.Combine(this.targetPath, missingFile.RelativePath);
                 Console.WriteLine($"Copying {missingFile.Info.FullName} to ${targetFilePath}");
-                if (Console.ReadKey().Key == ConsoleKey.Y)
+                if (skipConfirmation || Console.ReadKey().Key == ConsoleKey.Y)
                 {
                     try
                     {
@@ -346,7 +347,7 @@ namespace TheGnouCommunity.Tools.Synchronization
                 string sourceFilePath = Path.Combine(this.targetPath, similarFile.Item2.RelativePath);
                 string targetFilePath = Path.Combine(this.targetPath, similarFile.Item1.RelativePath);
                 Console.WriteLine($"Moving {sourceFilePath} to {targetFilePath}");
-                if (Console.ReadKey().Key == ConsoleKey.Y)
+                if (skipConfirmation || Console.ReadKey().Key == ConsoleKey.Y)
                 {
                     try
                     {
