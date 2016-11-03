@@ -26,7 +26,11 @@ namespace TheGnouCommunity.Tools.Synchronization
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+#if NET46
+    using System.Native.IO.FileSystem;
+#elif NETCORE
     using System.IO;
+#endif
     using System.Linq;
 
     public class Synchronizer

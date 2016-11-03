@@ -4,12 +4,20 @@
     "emitEntryPoint": true
   },
 
-  "dependencies": {},
-
   "frameworks": {
-    "net462": {},
+    "net462": {
+      "buildOptions": {
+        "define": [ "NET46" ]
+      },
+      "dependencies": {
+        "System.Native.IO": "2.1.0.1"
+      }
+    },
     "netcoreapp1.0": {
       "imports": "dnxcore50",
+      "buildOptions": {
+        "define": [ "NETCORE" ]
+      },
       "dependencies": {
         "Microsoft.NETCore.App": {
           "type": "platform",

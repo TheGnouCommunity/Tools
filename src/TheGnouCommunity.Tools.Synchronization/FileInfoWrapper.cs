@@ -25,7 +25,11 @@ namespace TheGnouCommunity.Tools.Synchronization
 {
     using System;
     using System.Collections.Generic;
+#if NET46
+    using System.Native.IO.FileSystem;
+#elif NETCORE
     using System.IO;
+#endif
     using System.Linq;
 
     internal class FileInfoWrapper
@@ -41,7 +45,7 @@ namespace TheGnouCommunity.Tools.Synchronization
         }
 
         public static IEnumerable<FileInfoWrapper> GetFiles(string basePath) => Directory
-            .EnumerateFiles(basePath, "*.*", SearchOption.AllDirectories)
+            .EnumerateFiles(basePath, "*.*", System.IO.SearchOption.AllDirectories)
             .Select(t => new FileInfoWrapper(basePath, t));
 
         public string RelativePath
