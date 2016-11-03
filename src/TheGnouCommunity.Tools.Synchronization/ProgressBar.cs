@@ -1,4 +1,4 @@
-/*
+﻿/*
     MIT License
 
     Copyright (c) 2015 @DanielSWolf (https://github.com/DanielSWolf).
@@ -31,11 +31,13 @@ namespace TheGnouCommunity.Tools.Synchronization
     /// <summary>
     /// An ASCII progress bar
     /// </summary>
-    public class ProgressBar : IDisposable, IProgress<double>
+    public class ProgressBar : IDisposable, IProgress<double>, IProgress<int>
     {
         private const int blockCount = 10;
         private readonly TimeSpan animationInterval = TimeSpan.FromSeconds(1.0 / 8);
         private const string animation = @"|/-\";
+
+        private readonly object syncLock = new object();
 
         private readonly Timer timer;
 
@@ -44,42 +46,64 @@ namespace TheGnouCommunity.Tools.Synchronization
         private bool disposed = false;
         private int animationIndex = 0;
 
+        private readonly double? maxValue;
+
         public ProgressBar()
         {
-            timer = new Timer(TimerHandler, null, animationInterval, TimeSpan.FromMilliseconds(-1));
-
             // A progress bar is only for temporary display in a console window.
             // If the console output is redirected to a file, draw nothing.
             // Otherwise, we'll end up with a lot of garbage in the target file.
             if (!Console.IsOutputRedirected)
             {
-                ResetTimer();
+                this.timer = new Timer(this.TimerHandler, null, animationInterval, TimeSpan.FromMilliseconds(-1));
             }
+        }
+
+        public ProgressBar(int maxValue)
+            : this()
+        {
+            this.maxValue = (double)maxValue;
         }
 
         public void Report(double value)
         {
             // Make sure value is in [0..1] range
             value = Math.Max(0, Math.Min(1, value));
-            Interlocked.Exchange(ref currentProgress, value);
+            Interlocked.Exchange(ref this.currentProgress, value);
+        }
+
+        public void Report(int value)
+        {
+            if (!this.maxValue.HasValue)
+            {
+                throw new InvalidOperationException();
+            }
+
+            this.Report(value / maxValue.Value);
         }
 
         private void TimerHandler(object state)
         {
-            lock (timer)
+            lock (this.syncLock)
             {
-                if (disposed)
+                if (this.disposed)
+                {
                     return;
+                }
 
-                int progressBlockCount = (int)(currentProgress * blockCount);
-                int percent = (int)(currentProgress * 100);
+                int progressBlockCount = (int)(this.currentProgress * blockCount);
+                int percent = (int)(this.currentProgress * 100);
                 string text = string.Format("[{0}{1}] {2,3}% {3}",
                     new string('#', progressBlockCount), new string('-', blockCount - progressBlockCount),
                     percent,
                     animation[animationIndex++ % animation.Length]);
-                UpdateText(text);
 
-                ResetTimer();
+                this.UpdateText(text);
+
+                if (this.timer != null)
+                {
+                    this.timer.Change(animationInterval, TimeSpan.FromMilliseconds(-1));
+                }
             }
         }
 
@@ -112,18 +136,14 @@ namespace TheGnouCommunity.Tools.Synchronization
             currentText = text;
         }
 
-        private void ResetTimer()
-        {
-            timer.Change(animationInterval, TimeSpan.FromMilliseconds(-1));
-        }
-
         public void Dispose()
         {
-            lock (timer)
+            lock (syncLock)
             {
-                disposed = true;
-                UpdateText(string.Empty);
+                this.disposed = true;
+                this.UpdateText(string.Empty);
             }
         }
+
     }
 }
