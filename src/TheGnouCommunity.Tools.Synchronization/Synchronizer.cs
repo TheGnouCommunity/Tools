@@ -26,6 +26,7 @@ namespace TheGnouCommunity.Tools.Synchronization
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.IO;
     using System.Linq;
 
     public class Synchronizer
@@ -145,6 +146,37 @@ namespace TheGnouCommunity.Tools.Synchronization
                 Console.WriteLine();
 
                 this.WriteSummary();
+
+                if (this.conflictedFiles.Any())
+                {
+                    Console.WriteLine("Conflicted files were detected:");
+                    this.ConflictedFiles.WriteToConsole();
+                }
+
+                if (this.differentFiles.Any())
+                {
+                    Console.WriteLine("Different files were detected:");
+                    this.DifferentFiles.WriteToConsole();
+                }
+
+                if (!this.conflictedFiles.Any() && !this.differentFiles.Any())
+                {
+                    Console.WriteLine($"{this.extraFiles.Count} extra files will be deleted.");
+                    Console.WriteLine($"{this.missingFiles.Count} missing files will be copied.");
+                    Console.WriteLine($"{this.similarFiles.Count} similar files will be moved.");
+                    Console.WriteLine("Press Y to proceed, N to cancel");
+                    ;
+                    ConsoleKeyInfo c;
+                    while ((c = Console.ReadKey()).Key != ConsoleKey.Y && c.Key != ConsoleKey.N)
+                    {
+                        Console.WriteLine("Y/N ?");
+                    }
+
+                    if (c.Key == ConsoleKey.Y)
+                    {
+                        this.ProcessFiles();
+                    }
+                }
             }
         }
 
@@ -273,6 +305,59 @@ namespace TheGnouCommunity.Tools.Synchronization
             Console.WriteLine($"\t- {this.similarFiles.Count} similar files.");
             Console.WriteLine($"\t- {this.conflictedFiles.Count} conflicted files.");
             Console.WriteLine();
+        }
+        private void ProcessFiles()
+        {
+            foreach (FileInfoWrapper extraFile in extraFiles)
+            {
+                Console.WriteLine($"Deleting {extraFile.Info.FullName}");
+                if (Console.ReadKey().Key == ConsoleKey.Y)
+                {
+                    try
+                    {
+                        File.Delete(extraFile.Info.FullName);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e.Message);
+                    }
+                }
+            }
+
+            foreach (FileInfoWrapper missingFile in missingFiles)
+            {
+                string targetFilePath = Path.Combine(this.targetPath, missingFile.RelativePath);
+                Console.WriteLine($"Copying {missingFile.Info.FullName} to ${targetFilePath}");
+                if (Console.ReadKey().Key == ConsoleKey.Y)
+                {
+                    try
+                    {
+                        File.Copy(missingFile.Info.FullName, targetFilePath);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e.Message);
+                    }
+                }
+            }
+
+            foreach (Tuple<FileInfoWrapper, FileInfoWrapper> similarFile in this.similarFiles)
+            {
+                string sourceFilePath = Path.Combine(this.targetPath, similarFile.Item2.RelativePath);
+                string targetFilePath = Path.Combine(this.targetPath, similarFile.Item1.RelativePath);
+                Console.WriteLine($"Moving {sourceFilePath} to {targetFilePath}");
+                if (Console.ReadKey().Key == ConsoleKey.Y)
+                {
+                    try
+                    {
+                        File.Move(sourceFilePath, targetFilePath);
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e.Message);
+                    }
+                }
+            }
         }
     }
 }
